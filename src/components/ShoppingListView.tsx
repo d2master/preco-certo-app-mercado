@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ProductCard } from './ProductCard';
 import { BarcodeScanner } from './BarcodeScanner';
 import { Product } from '@/types/product';
 import { getProductByBarcode, formatProductFromAPI } from '@/services/productService';
-import { Scan, Check, ArrowLeft, ShoppingCart } from 'lucide-react';
+import { Scan, Check, ArrowLeft, ShoppingCart, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ShoppingListViewProps {
@@ -20,6 +21,8 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
   const [showScanner, setShowScanner] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [listName, setListName] = useState('');
+  const [showManualDialog, setShowManualDialog] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState('');
   const { toast } = useToast();
 
   const handleScanSuccess = async (barcode: string) => {
@@ -81,6 +84,26 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     onUpdateProducts(updatedProducts);
   };
 
+  const handleManualAdd = async () => {
+    if (!manualBarcode.trim()) {
+      toast({
+        title: "Código inválido",
+        description: "Digite um código de barras válido",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await handleScanSuccess(manualBarcode.trim());
+      setManualBarcode('');
+      setShowManualDialog(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCompleteList = () => {
     if (products.length === 0) {
       toast({
@@ -126,15 +149,59 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
           />
         </Card>
 
-        {/* Botão Scanner */}
-        <Button
-          onClick={() => setShowScanner(true)}
-          className="w-full mb-6 h-12 text-base shadow-button"
-          size="lg"
-        >
-          <Scan className="h-5 w-5 mr-2" />
-          Escanear Produto
-        </Button>
+        {/* Botões de Adicionar */}
+        <div className="space-y-3 mb-6">
+          <Button
+            onClick={() => setShowScanner(true)}
+            className="w-full h-12 text-base shadow-button"
+            size="lg"
+          >
+            <Scan className="h-5 w-5 mr-2" />
+            Escanear Produto
+          </Button>
+          
+          <Dialog open={showManualDialog} onOpenChange={setShowManualDialog}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full h-12 text-base shadow-button"
+                size="lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Adicionar Produto Manual
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Produto Manual</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input
+                  placeholder="Digite o código de barras"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleManualAdd()}
+                />
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowManualDialog(false)}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleManualAdd}
+                    disabled={isLoading || !manualBarcode.trim()}
+                    className="flex-1"
+                  >
+                    {isLoading ? 'Buscando...' : 'Adicionar'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {/* Lista de Produtos */}
         <div className="space-y-4 mb-6">
