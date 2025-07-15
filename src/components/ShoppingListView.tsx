@@ -22,7 +22,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
   const [isLoading, setIsLoading] = useState(false);
   const [listName, setListName] = useState('');
   const [showManualDialog, setShowManualDialog] = useState(false);
-  const [manualBarcode, setManualBarcode] = useState('');
+  const [manualProductName, setManualProductName] = useState('');
   const { toast } = useToast();
 
   const handleScanSuccess = async (barcode: string) => {
@@ -84,24 +84,50 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     onUpdateProducts(updatedProducts);
   };
 
-  const handleManualAdd = async () => {
-    if (!manualBarcode.trim()) {
+  const handleManualAdd = () => {
+    if (!manualProductName.trim()) {
       toast({
-        title: "Código inválido",
-        description: "Digite um código de barras válido",
+        title: "Nome inválido",
+        description: "Digite o nome do produto",
         variant: "destructive",
       });
       return;
     }
 
-    setIsLoading(true);
-    try {
-      await handleScanSuccess(manualBarcode.trim());
-      setManualBarcode('');
-      setShowManualDialog(false);
-    } finally {
-      setIsLoading(false);
+    const newProduct: Product = {
+      id: Date.now().toString(),
+      name: manualProductName.trim(),
+      brand: '',
+      code: '',
+      image: '',
+      quantity: 1
+    };
+
+    // Verificar se o produto já existe na lista
+    const existingProductIndex = products.findIndex(p => 
+      p.name.toLowerCase() === newProduct.name.toLowerCase()
+    );
+    
+    if (existingProductIndex !== -1) {
+      // Se existe, incrementar quantidade
+      const updatedProducts = [...products];
+      updatedProducts[existingProductIndex].quantity += 1;
+      onUpdateProducts(updatedProducts);
+      toast({
+        title: "Produto atualizado",
+        description: `Quantidade de ${newProduct.name} incrementada`,
+      });
+    } else {
+      // Se não existe, adicionar novo produto
+      onUpdateProducts([...products, newProduct]);
+      toast({
+        title: "Produto adicionado",
+        description: `${newProduct.name} foi adicionado à lista`,
+      });
     }
+
+    setManualProductName('');
+    setShowManualDialog(false);
   };
 
   const handleCompleteList = () => {
@@ -177,9 +203,9 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
               </DialogHeader>
               <div className="space-y-4">
                 <Input
-                  placeholder="Digite o código de barras"
-                  value={manualBarcode}
-                  onChange={(e) => setManualBarcode(e.target.value)}
+                  placeholder="Digite o nome do produto"
+                  value={manualProductName}
+                  onChange={(e) => setManualProductName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleManualAdd()}
                 />
                 <div className="flex gap-3">
@@ -192,10 +218,10 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
                   </Button>
                   <Button
                     onClick={handleManualAdd}
-                    disabled={isLoading || !manualBarcode.trim()}
+                    disabled={!manualProductName.trim()}
                     className="flex-1"
                   >
-                    {isLoading ? 'Buscando...' : 'Adicionar'}
+                    Adicionar
                   </Button>
                 </div>
               </div>

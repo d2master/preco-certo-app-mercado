@@ -2,15 +2,16 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ShoppingList } from '@/types/product';
-import { ArrowLeft, Calendar, ShoppingBag, RotateCcw, Package } from 'lucide-react';
+import { ArrowLeft, Calendar, ShoppingBag, RotateCcw, Package, Trash2 } from 'lucide-react';
 
 interface HistoryViewProps {
   shoppingLists: ShoppingList[];
   onBack: () => void;
   onRepeatList: (list: ShoppingList) => void;
+  onDeleteList: (listId: string) => void;
 }
 
-export function HistoryView({ shoppingLists, onBack, onRepeatList }: HistoryViewProps) {
+export function HistoryView({ shoppingLists, onBack, onRepeatList, onDeleteList }: HistoryViewProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
@@ -78,15 +79,24 @@ export function HistoryView({ shoppingLists, onBack, onRepeatList }: HistoryView
                       </div>
                     </div>
                     
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onRepeatList(list)}
-                      className="ml-2"
-                    >
-                      <RotateCcw className="h-4 w-4 mr-1" />
-                      Repetir
-                    </Button>
+                    <div className="flex gap-2 ml-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onRepeatList(list)}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-1" />
+                        Repetir
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onDeleteList(list.id)}
+                        className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Produtos da Lista */}

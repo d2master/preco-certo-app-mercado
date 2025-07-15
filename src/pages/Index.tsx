@@ -61,6 +61,14 @@ const Index = () => {
     setCurrentView('home');
   };
 
+  const handleDeleteList = (listId: string) => {
+    setShoppingLists(prev => prev.filter(list => list.id !== listId));
+    toast({
+      title: "Lista excluída",
+      description: "A lista foi removida do histórico",
+    });
+  };
+
   if (currentView === 'shopping') {
     return (
       <ShoppingListView
@@ -78,6 +86,7 @@ const Index = () => {
         shoppingLists={shoppingLists}
         onBack={handleBackToHome}
         onRepeatList={handleRepeatList}
+        onDeleteList={handleDeleteList}
       />
     );
   }
