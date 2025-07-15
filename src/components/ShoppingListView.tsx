@@ -79,6 +79,13 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     onUpdateProducts(updatedProducts);
   };
 
+  const handleUpdatePrice = (id: string, price: number) => {
+    const updatedProducts = products.map(product =>
+      product.id === id ? { ...product, price } : product
+    );
+    onUpdateProducts(updatedProducts);
+  };
+
   const handleRemoveProduct = (id: string) => {
     const updatedProducts = products.filter(product => product.id !== id);
     onUpdateProducts(updatedProducts);
@@ -100,7 +107,8 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
       brand: '',
       code: '',
       image: '',
-      quantity: 1
+      quantity: 1,
+      price: 0
     };
 
     // Verificar se o produto já existe na lista
@@ -148,6 +156,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
   };
 
   const totalItems = products.reduce((sum, product) => sum + product.quantity, 0);
+  const totalPrice = products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -159,9 +168,10 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
           </Button>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground">Lista de Compras</h1>
-            <p className="text-sm text-muted-foreground">
-              {totalItems} {totalItems === 1 ? 'item' : 'itens'}
-            </p>
+            <div className="text-sm text-muted-foreground">
+              <p>{totalItems} {totalItems === 1 ? 'item' : 'itens'}</p>
+              <p className="font-medium text-primary">Total: R$ {totalPrice.toFixed(2)}</p>
+            </div>
           </div>
         </div>
 
@@ -244,6 +254,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
                 key={product.id}
                 product={product}
                 onUpdateQuantity={handleUpdateQuantity}
+                onUpdatePrice={handleUpdatePrice}
                 onRemove={handleRemoveProduct}
               />
             ))

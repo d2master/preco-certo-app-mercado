@@ -24,12 +24,15 @@ const Index = () => {
   const handleCompleteList = () => {
     if (currentProducts.length === 0) return;
 
+    const total = currentProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+
     const newList: ShoppingList = {
       id: `list-${Date.now()}`,
       name: `Lista ${new Date().toLocaleDateString('pt-BR')}`,
       products: [...currentProducts],
       createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString()
+      completedAt: new Date().toISOString(),
+      total
     };
 
     setShoppingLists(prev => [newList, ...prev]);

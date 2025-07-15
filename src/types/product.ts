@@ -5,6 +5,7 @@ export interface Product {
   brand?: string;
   image?: string;
   quantity: number;
+  price: number;
 }
 
 export interface ProductFromAPI {
@@ -25,4 +26,5 @@ export interface ShoppingList {
   products: Product[];
   createdAt: string;
   completedAt?: string;
+  total: number;
 }

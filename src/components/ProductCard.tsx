@@ -8,15 +8,24 @@ import { Minus, Plus, Trash2, Package } from 'lucide-react';
 interface ProductCardProps {
   product: Product;
   onUpdateQuantity: (id: string, quantity: number) => void;
+  onUpdatePrice: (id: string, price: number) => void;
   onRemove: (id: string) => void;
 }
 
-export function ProductCard({ product, onUpdateQuantity, onRemove }: ProductCardProps) {
+export function ProductCard({ product, onUpdateQuantity, onUpdatePrice, onRemove }: ProductCardProps) {
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity >= 1) {
       onUpdateQuantity(product.id, newQuantity);
     }
   };
+
+  const handlePriceChange = (newPrice: number) => {
+    if (newPrice >= 0) {
+      onUpdatePrice(product.id, newPrice);
+    }
+  };
+
+  const totalPrice = product.price * product.quantity;
 
   return (
     <Card className="p-4 shadow-card border-border bg-gradient-card">
@@ -46,9 +55,28 @@ export function ProductCard({ product, onUpdateQuantity, onRemove }: ProductCard
               {product.brand}
             </p>
           )}
-          <p className="text-xs text-muted-foreground mt-1">
-            Código: {product.code}
-          </p>
+          {product.code && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Código: {product.code}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-xs text-muted-foreground">R$</span>
+            <Input
+              type="number"
+              value={product.price.toFixed(2)}
+              onChange={(e) => handlePriceChange(parseFloat(e.target.value) || 0)}
+              className="w-20 h-6 text-xs"
+              min="0"
+              step="0.01"
+              placeholder="0,00"
+            />
+          </div>
+          {product.quantity > 1 && (
+            <p className="text-sm font-medium text-primary mt-1">
+              Total: R$ {totalPrice.toFixed(2)}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">

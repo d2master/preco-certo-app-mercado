@@ -26,6 +26,7 @@ export const formatProductFromAPI = (apiProduct: ProductFromAPI) => {
     name: product?.product_name || 'Produto não identificado',
     brand: product?.brands || undefined,
     image: product?.image_front_url || product?.image_url || undefined,
-    quantity: 1
+    quantity: 1,
+    price: 0
   };
 };

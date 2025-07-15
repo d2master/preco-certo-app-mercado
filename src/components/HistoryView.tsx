@@ -77,6 +77,11 @@ export function HistoryView({ shoppingLists, onBack, onRepeatList, onDeleteList 
                           {getTotalItems(list)} {getTotalItems(list) === 1 ? 'item' : 'itens'}
                         </p>
                       </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm font-medium text-primary">
+                          Total: R$ {list.total?.toFixed(2) || '0,00'}
+                        </p>
+                      </div>
                     </div>
                     
                     <div className="flex gap-2 ml-2">
@@ -120,7 +125,7 @@ export function HistoryView({ shoppingLists, onBack, onRepeatList, onDeleteList 
                             ) : null}
                             <Package className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          <div className="flex-1 min-w-0">
+                       <div className="flex-1 min-w-0">
                             <p className="text-foreground truncate">{product.name}</p>
                             {product.brand && (
                               <p className="text-xs text-muted-foreground truncate">
@@ -128,9 +133,19 @@ export function HistoryView({ shoppingLists, onBack, onRepeatList, onDeleteList 
                               </p>
                             )}
                           </div>
-                          <span className="text-muted-foreground font-medium">
-                            {product.quantity}x
-                          </span>
+                          <div className="text-right">
+                            <span className="text-muted-foreground font-medium text-sm">
+                              {product.quantity}x
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              R$ {product.price.toFixed(2)}
+                            </p>
+                            {product.quantity > 1 && (
+                              <p className="text-xs text-primary font-medium">
+                                R$ {(product.price * product.quantity).toFixed(2)}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
