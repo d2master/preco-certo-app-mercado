@@ -138,11 +138,11 @@ export function HistoryView({ shoppingLists, onBack, onRepeatList, onDeleteList 
                               {product.quantity}x
                             </span>
                             <p className="text-xs text-muted-foreground">
-                              R$ {product.price.toFixed(2)}
+                              R$ {product.price?.toFixed(2) || '0,00'}
                             </p>
                             {product.quantity > 1 && (
                               <p className="text-xs text-primary font-medium">
-                                R$ {(product.price * product.quantity).toFixed(2)}
+                                R$ {((product.price || 0) * product.quantity).toFixed(2)}
                               </p>
                             )}
                           </div>
