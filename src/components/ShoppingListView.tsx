@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 interface ShoppingListViewProps {
   products: Product[];
   onUpdateProducts: (products: Product[]) => void;
-  onComplete: () => void;
+  onComplete: (listName?: string) => void;
   onBack: () => void;
 }
 
@@ -148,7 +148,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
       return;
     }
 
-    onComplete();
+    onComplete(listName.trim() || undefined);
     toast({
       title: "Lista finalizada",
       description: "Sua lista de compras foi salva no histórico",
