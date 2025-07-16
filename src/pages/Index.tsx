@@ -7,25 +7,21 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Product, ShoppingList } from '@/types/product';
 import { ShoppingCart, History, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
 type View = 'home' | 'shopping' | 'history';
-
 const Index = () => {
   const [currentView, setCurrentView] = useState<View>('home');
   const [currentProducts, setCurrentProducts] = useState<Product[]>([]);
   const [shoppingLists, setShoppingLists] = useLocalStorage<ShoppingList[]>('shopping-lists', []);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const handleStartShopping = () => {
     setCurrentProducts([]);
     setCurrentView('shopping');
   };
-
   const handleCompleteList = () => {
     if (currentProducts.length === 0) return;
-
-    const total = currentProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
-
+    const total = currentProducts.reduce((sum, product) => sum + product.price * product.quantity, 0);
     const newList: ShoppingList = {
       id: `list-${Date.now()}`,
       name: `Lista ${new Date().toLocaleDateString('pt-BR')}`,
@@ -34,77 +30,50 @@ const Index = () => {
       completedAt: new Date().toISOString(),
       total
     };
-
     setShoppingLists(prev => [newList, ...prev]);
     setCurrentProducts([]);
     setCurrentView('home');
   };
-
   const handleRepeatList = (list: ShoppingList) => {
     // Criar novos IDs para os produtos para evitar conflitos
     const productsWithNewIds = list.products.map(product => ({
       ...product,
       id: `${product.code}-${Date.now()}-${Math.random()}`
     }));
-    
     setCurrentProducts(productsWithNewIds);
     setCurrentView('shopping');
-    
     toast({
       title: "Lista carregada",
-      description: `${list.products.length} produtos adicionados à nova lista`,
+      description: `${list.products.length} produtos adicionados à nova lista`
     });
   };
-
   const handleViewHistory = () => {
     setCurrentView('history');
   };
-
   const handleBackToHome = () => {
     setCurrentView('home');
   };
-
   const handleDeleteList = (listId: string) => {
     setShoppingLists(prev => prev.filter(list => list.id !== listId));
     toast({
       title: "Lista excluída",
-      description: "A lista foi removida do histórico",
+      description: "A lista foi removida do histórico"
     });
   };
-
   if (currentView === 'shopping') {
-    return (
-      <ShoppingListView
-        products={currentProducts}
-        onUpdateProducts={setCurrentProducts}
-        onComplete={handleCompleteList}
-        onBack={handleBackToHome}
-      />
-    );
+    return <ShoppingListView products={currentProducts} onUpdateProducts={setCurrentProducts} onComplete={handleCompleteList} onBack={handleBackToHome} />;
   }
-
   if (currentView === 'history') {
-    return (
-      <HistoryView
-        shoppingLists={shoppingLists}
-        onBack={handleBackToHome}
-        onRepeatList={handleRepeatList}
-        onDeleteList={handleDeleteList}
-      />
-    );
+    return <HistoryView shoppingLists={shoppingLists} onBack={handleBackToHome} onRepeatList={handleRepeatList} onDeleteList={handleDeleteList} />;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <div className="max-w-md mx-auto p-4 pt-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-card">
             <Package className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">
-            SuperMercado App
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Preço Certo</h1>
           <p className="text-muted-foreground">
             Sua lista de compras inteligente
           </p>
@@ -177,8 +146,6 @@ const Index = () => {
           </p>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
