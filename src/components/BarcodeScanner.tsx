@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useZxing } from 'react-zxing';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { X, Camera, Loader2 } from 'lucide-react';
+import { X, Camera, Loader2, SwitchCamera } from 'lucide-react';
 
 interface BarcodeScannerProps {
   onScanSuccess: (barcode: string) => void;
@@ -10,18 +10,75 @@ interface BarcodeScannerProps {
   isLoading?: boolean;
 }
 
+interface CameraDevice {
+  deviceId: string;
+  label: string;
+}
+
 export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeScannerProps) {
   const [error, setError] = useState<string>('');
+  const [cameras, setCameras] = useState<CameraDevice[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+
+  // Get available cameras
+  useEffect(() => {
+    const getCameras = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices
+          .filter(device => device.kind === 'videoinput')
+          .map(device => ({
+            deviceId: device.deviceId,
+            label: device.label || `Câmera ${device.deviceId.slice(0, 5)}`
+          }));
+        
+        setCameras(videoDevices);
+        if (videoDevices.length > 0) {
+          setSelectedCameraId(videoDevices[0].deviceId);
+        }
+      } catch (err) {
+        console.error('Error getting cameras:', err);
+        setError('Erro ao acessar câmeras');
+      }
+    };
+
+    getCameras();
+  }, []);
+
+  const switchCamera = () => {
+    if (cameras.length > 1) {
+      const nextIndex = (currentCameraIndex + 1) % cameras.length;
+      setCurrentCameraIndex(nextIndex);
+      setSelectedCameraId(cameras[nextIndex].deviceId);
+      setError(''); // Clear any previous errors
+    }
+  };
+
+  const getVideoConstraints = () => {
+    const baseConstraints = {
+      width: { ideal: 1920, max: 1920 },
+      height: { ideal: 1080, max: 1080 },
+      aspectRatio: { ideal: 16/9 },
+      frameRate: { ideal: 30, max: 30 }
+    };
+
+    if (selectedCameraId) {
+      return {
+        deviceId: { exact: selectedCameraId },
+        ...baseConstraints
+      };
+    }
+
+    return {
+      facingMode: { exact: "environment" },
+      ...baseConstraints
+    };
+  };
 
   const { ref } = useZxing({
     constraints: {
-      video: {
-        facingMode: { exact: "environment" }, // Force main rear camera (not wide-angle)
-        width: { ideal: 1920, max: 1920 },
-        height: { ideal: 1080, max: 1080 },
-        aspectRatio: { ideal: 16/9 },
-        frameRate: { ideal: 30, max: 30 }
-      }
+      video: getVideoConstraints()
     },
     onDecodeResult(result) {
       onScanSuccess(result.getText());
@@ -70,6 +127,17 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
             <div className="text-center text-muted-foreground text-sm">
               Posicione o código de barras no centro da câmera
             </div>
+
+            {cameras.length > 1 && (
+              <Button 
+                variant="secondary" 
+                onClick={switchCamera}
+                className="w-full flex items-center gap-2"
+              >
+                <SwitchCamera className="h-4 w-4" />
+                Trocar Câmera ({currentCameraIndex + 1}/{cameras.length})
+              </Button>
+            )}
 
             <Button 
               variant="outline" 
