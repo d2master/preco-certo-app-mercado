@@ -16,9 +16,11 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
   const { ref } = useZxing({
     constraints: {
       video: {
-        facingMode: "environment", // Force rear camera
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+        facingMode: { exact: "environment" }, // Force main rear camera (not wide-angle)
+        width: { ideal: 1920, max: 1920 },
+        height: { ideal: 1080, max: 1080 },
+        aspectRatio: { ideal: 16/9 },
+        frameRate: { ideal: 30, max: 30 }
       }
     },
     onDecodeResult(result) {
