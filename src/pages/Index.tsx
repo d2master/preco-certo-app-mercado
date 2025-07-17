@@ -141,9 +141,7 @@ const Index = () => {
 
         {/* Footer */}
         <div className="text-center mt-12 mb-4">
-          <p className="text-xs text-muted-foreground">
-            Versão 1.0 • Feito com ❤️
-          </p>
+          <p className="text-xs text-muted-foreground">Versão 1.0 • By Jamerson Malheiros</p>
         </div>
       </div>
     </div>;
