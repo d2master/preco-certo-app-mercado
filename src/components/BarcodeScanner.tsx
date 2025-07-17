@@ -14,6 +14,13 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
   const [error, setError] = useState<string>('');
 
   const { ref } = useZxing({
+    constraints: {
+      video: {
+        facingMode: "environment", // Force rear camera
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    },
     onDecodeResult(result) {
       onScanSuccess(result.getText());
     },
