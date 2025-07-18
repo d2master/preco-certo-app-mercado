@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,15 +18,15 @@ export function ProductCard({ product, onUpdateQuantity, onUpdatePrice, onRemove
 
   // Initialize price input when component mounts or product changes
   useEffect(() => {
-    const formattedPrice = (product.price * 100).toFixed(0).padStart(3, '0');
-    setPriceInput(formattedPrice);
+    const centavos = Math.round(product.price * 100);
+    setPriceInput(centavos.toString());
   }, [product.price]);
 
   const formatPriceDisplay = (centavos: string) => {
-    const paddedCentavos = centavos.padStart(3, '0');
-    const reais = paddedCentavos.slice(0, -2) || '0';
-    const cents = paddedCentavos.slice(-2);
-    return `${reais},${cents}`;
+    const numCentavos = parseInt(centavos || '0');
+    const reais = Math.floor(numCentavos / 100);
+    const cents = numCentavos % 100;
+    return `${reais},${cents.toString().padStart(2, '0')}`;
   };
 
   const handlePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,6 +116,8 @@ export function ProductCard({ product, onUpdateQuantity, onUpdatePrice, onRemove
             <span className="text-xs text-muted-foreground">R$</span>
             <input
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={formatPriceDisplay(priceInput)}
               onChange={handlePriceInputChange}
               onKeyDown={handlePriceKeyDown}
