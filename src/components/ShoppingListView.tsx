@@ -23,6 +23,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
   const [listName, setListName] = useState('');
   const [showManualDialog, setShowManualDialog] = useState(false);
   const [manualProductName, setManualProductName] = useState('');
+  const [manualProductPrice, setManualProductPrice] = useState('0');
   const { toast } = useToast();
 
   const handleScanSuccess = async (barcode: string) => {
@@ -91,6 +92,39 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     onUpdateProducts(updatedProducts);
   };
 
+  const formatPriceDisplay = (centavos: string) => {
+    const numCentavos = parseInt(centavos || '0');
+    const reais = Math.floor(numCentavos / 100);
+    const cents = numCentavos % 100;
+    return `${reais},${cents.toString().padStart(2, '0')}`;
+  };
+
+  const handlePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Only allow digits
+    const digitsOnly = value.replace(/\D/g, '');
+    
+    // Limit to reasonable number of digits (max 999999 = R$ 9999,99)
+    if (digitsOnly.length <= 6) {
+      setManualProductPrice(digitsOnly);
+    }
+  };
+
+  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      setManualProductPrice(prev => prev.slice(0, -1));
+    } else if (e.key === 'Delete' || e.key === 'Clear') {
+      e.preventDefault();
+      setManualProductPrice('0');
+    } else if (e.key === 'Enter') {
+      handleManualAdd();
+    } else if (!/\d/.test(e.key) && !['Tab', 'Escape'].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   const handleManualAdd = () => {
     if (!manualProductName.trim()) {
       toast({
@@ -101,6 +135,9 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
       return;
     }
 
+    const centavos = parseInt(manualProductPrice || '0');
+    const price = centavos / 100;
+
     const newProduct: Product = {
       id: Date.now().toString(),
       name: manualProductName.trim(),
@@ -108,7 +145,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
       code: '',
       image: '',
       quantity: 1,
-      price: 0
+      price: price
     };
 
     // Verificar se o produto já existe na lista
@@ -135,6 +172,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     }
 
     setManualProductName('');
+    setManualProductPrice('0');
     setShowManualDialog(false);
   };
 
@@ -212,16 +250,46 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
                 <DialogTitle>Adicionar Produto Manual</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <Input
-                  placeholder="Digite o nome do produto"
-                  value={manualProductName}
-                  onChange={(e) => setManualProductName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleManualAdd()}
-                />
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Nome do Produto
+                  </label>
+                  <Input
+                    placeholder="Digite o nome do produto"
+                    value={manualProductName}
+                    onChange={(e) => setManualProductName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && document.getElementById('price-input')?.focus()}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Preço
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">R$</span>
+                    <input
+                      id="price-input"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={formatPriceDisplay(manualProductPrice)}
+                      onChange={handlePriceInputChange}
+                      onKeyDown={handlePriceKeyDown}
+                      className="flex-1 h-10 px-3 py-2 text-right font-mono rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+                
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => setShowManualDialog(false)}
+                    onClick={() => {
+                      setShowManualDialog(false);
+                      setManualProductName('');
+                      setManualProductPrice('0');
+                    }}
                     className="flex-1"
                   >
                     Cancelar
