@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { ProductCard } from './ProductCard';
 import { BarcodeScanner } from './BarcodeScanner';
 import { Product } from '@/types/product';
 import { getProductByBarcode, formatProductFromAPI } from '@/services/productService';
-import { Scan, Check, ArrowLeft, ShoppingCart, Plus } from 'lucide-react';
+import { Scan, Check, ArrowLeft, ShoppingCart, Plus, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ShoppingListViewProps {
@@ -24,6 +25,12 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
   const [showManualDialog, setShowManualDialog] = useState(false);
   const [manualProductName, setManualProductName] = useState('');
   const [manualProductPrice, setManualProductPrice] = useState('0');
+  
+  // New states for scanned product price dialog
+  const [showScannedPriceDialog, setShowScannedPriceDialog] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
+  const [scannedProductPrice, setScannedProductPrice] = useState('0');
+  
   const { toast } = useToast();
 
   const handleScanSuccess = async (barcode: string) => {
@@ -34,26 +41,15 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
       if (productData && productData.status === 1) {
         const newProduct = formatProductFromAPI(productData);
         
-        // Verificar se o produto já existe na lista
-        const existingProductIndex = products.findIndex(p => p.code === newProduct.code);
+        // Instead of adding directly, open price dialog
+        setScannedProduct(newProduct);
+        setScannedProductPrice('0');
+        setShowScannedPriceDialog(true);
         
-        if (existingProductIndex !== -1) {
-          // Se existe, incrementar quantidade
-          const updatedProducts = [...products];
-          updatedProducts[existingProductIndex].quantity += 1;
-          onUpdateProducts(updatedProducts);
-          toast({
-            title: "Produto atualizado",
-            description: `Quantidade de ${newProduct.name} incrementada`,
-          });
-        } else {
-          // Se não existe, adicionar novo produto
-          onUpdateProducts([...products, newProduct]);
-          toast({
-            title: "Produto adicionado",
-            description: `${newProduct.name} foi adicionado à lista`,
-          });
-        }
+        toast({
+          title: "Produto encontrado",
+          description: `${newProduct.name} - Defina o preço`,
+        });
       } else {
         toast({
           title: "Produto não encontrado",
@@ -99,7 +95,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     return `${reais},${cents.toString().padStart(2, '0')}`;
   };
 
-  const handlePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
     const value = e.target.value;
     
     // Only allow digits
@@ -107,19 +103,19 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     
     // Limit to reasonable number of digits (max 999999 = R$ 9999,99)
     if (digitsOnly.length <= 6) {
-      setManualProductPrice(digitsOnly);
+      setter(digitsOnly);
     }
   };
 
-  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, onEnter: () => void, setter: (value: string) => void) => {
     if (e.key === 'Backspace') {
       e.preventDefault();
-      setManualProductPrice(prev => prev.slice(0, -1));
+      setter(prev => prev.slice(0, -1));
     } else if (e.key === 'Delete' || e.key === 'Clear') {
       e.preventDefault();
-      setManualProductPrice('0');
+      setter('0');
     } else if (e.key === 'Enter') {
-      handleManualAdd();
+      onEnter();
     } else if (!/\d/.test(e.key) && !['Tab', 'Escape'].includes(e.key)) {
       e.preventDefault();
     }
@@ -174,6 +170,44 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     setManualProductName('');
     setManualProductPrice('0');
     setShowManualDialog(false);
+  };
+
+  const handleAddScannedProduct = () => {
+    if (!scannedProduct) return;
+
+    const centavos = parseInt(scannedProductPrice || '0');
+    const price = centavos / 100;
+
+    const productToAdd = {
+      ...scannedProduct,
+      price: price
+    };
+
+    // Verificar se o produto já existe na lista
+    const existingProductIndex = products.findIndex(p => p.code === productToAdd.code);
+    
+    if (existingProductIndex !== -1) {
+      // Se existe, incrementar quantidade
+      const updatedProducts = [...products];
+      updatedProducts[existingProductIndex].quantity += 1;
+      onUpdateProducts(updatedProducts);
+      toast({
+        title: "Produto atualizado",
+        description: `Quantidade de ${productToAdd.name} incrementada`,
+      });
+    } else {
+      // Se não existe, adicionar novo produto
+      onUpdateProducts([...products, productToAdd]);
+      toast({
+        title: "Produto adicionado",
+        description: `${productToAdd.name} foi adicionado à lista`,
+      });
+    }
+
+    // Clear states and close dialog
+    setScannedProduct(null);
+    setScannedProductPrice('0');
+    setShowScannedPriceDialog(false);
   };
 
   const handleCompleteList = () => {
@@ -258,7 +292,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
                     placeholder="Digite o nome do produto"
                     value={manualProductName}
                     onChange={(e) => setManualProductName(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && document.getElementById('price-input')?.focus()}
+                    onKeyPress={(e) => e.key === 'Enter' && document.getElementById('manual-price-input')?.focus()}
                   />
                 </div>
                 
@@ -269,13 +303,13 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">R$</span>
                     <input
-                      id="price-input"
+                      id="manual-price-input"
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
                       value={formatPriceDisplay(manualProductPrice)}
-                      onChange={handlePriceInputChange}
-                      onKeyDown={handlePriceKeyDown}
+                      onChange={(e) => handlePriceInputChange(e, setManualProductPrice)}
+                      onKeyDown={(e) => handlePriceKeyDown(e, handleManualAdd, setManualProductPrice)}
                       className="flex-1 h-10 px-3 py-2 text-right font-mono rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       placeholder="0,00"
                     />
@@ -306,6 +340,95 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Dialog para Definir Preço do Produto Escaneado */}
+        <Dialog open={showScannedPriceDialog} onOpenChange={setShowScannedPriceDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Definir Preço do Produto</DialogTitle>
+            </DialogHeader>
+            {scannedProduct && (
+              <div className="space-y-4">
+                {/* Informações do produto */}
+                <div className="flex gap-4 items-start p-4 bg-muted rounded-lg">
+                  <div className="w-16 h-16 rounded-lg bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {scannedProduct.image ? (
+                      <img 
+                        src={scannedProduct.image} 
+                        alt={scannedProduct.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <Package className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-foreground text-sm leading-tight break-words">
+                      {scannedProduct.name}
+                    </h3>
+                    {scannedProduct.brand && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {scannedProduct.brand}
+                      </p>
+                    )}
+                    {scannedProduct.code && (
+                      <p className="text-xs text-muted-foreground">
+                        Código: {scannedProduct.code}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Campo de preço */}
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Preço
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">R$</span>
+                    <input
+                      id="scanned-price-input"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={formatPriceDisplay(scannedProductPrice)}
+                      onChange={(e) => handlePriceInputChange(e, setScannedProductPrice)}
+                      onKeyDown={(e) => handlePriceKeyDown(e, handleAddScannedProduct, setScannedProductPrice)}
+                      className="flex-1 h-10 px-3 py-2 text-right font-mono rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      placeholder="0,00"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowScannedPriceDialog(false);
+                      setScannedProduct(null);
+                      setScannedProductPrice('0');
+                    }}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleAddScannedProduct}
+                    className="flex-1"
+                  >
+                    Adicionar à Lista
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Lista de Produtos */}
         <div className="space-y-4 mb-6">
