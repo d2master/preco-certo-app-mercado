@@ -8,7 +8,7 @@ import { ProductCard } from './ProductCard';
 import { BarcodeScanner } from './BarcodeScanner';
 import { Product } from '@/types/product';
 import { getProductByBarcode, formatProductFromAPI } from '@/services/productService';
-import { Scan, Check, ArrowLeft, ShoppingCart, Plus, Package } from 'lucide-react';
+import { Scan, Check, ArrowLeft, ShoppingCart, Plus, Package, Scale } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ShoppingListViewProps {
@@ -30,6 +30,13 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
   const [showScannedPriceDialog, setShowScannedPriceDialog] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [scannedProductPrice, setScannedProductPrice] = useState('0');
+  
+  // New states for kg product dialog
+  const [showKgDialog, setShowKgDialog] = useState(false);
+  const [kgProductName, setKgProductName] = useState('');
+  const [kgProductPricePerKg, setKgProductPricePerKg] = useState('0');
+  const [kgProductWeight, setKgProductWeight] = useState('0');
+  const [kgStep, setKgStep] = useState<'name' | 'price' | 'weight'>('name');
   
   const { toast } = useToast();
 
@@ -210,6 +217,119 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     setShowScannedPriceDialog(false);
   };
 
+  const handleKgProductNext = () => {
+    if (kgStep === 'name') {
+      if (!kgProductName.trim()) {
+        toast({
+          title: "Nome inválido",
+          description: "Digite o nome do produto",
+          variant: "destructive",
+        });
+        return;
+      }
+      setKgStep('price');
+    } else if (kgStep === 'price') {
+      setKgStep('weight');
+    }
+  };
+
+  const handleKgProductAdd = () => {
+    if (!kgProductName.trim()) {
+      toast({
+        title: "Nome inválido",
+        description: "Digite o nome do produto",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const pricePerKgCentavos = parseInt(kgProductPricePerKg || '0');
+    const pricePerKg = pricePerKgCentavos / 100;
+    
+    const weightGrams = parseInt(kgProductWeight || '0');
+    const weight = weightGrams / 1000; // Convert grams to kg
+    
+    if (weight <= 0) {
+      toast({
+        title: "Peso inválido",
+        description: "Digite o peso do produto",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const totalPrice = pricePerKg * weight;
+
+    const newProduct: Product = {
+      id: Date.now().toString(),
+      name: `${kgProductName.trim()} (${weight}kg)`,
+      brand: '',
+      code: '',
+      image: '',
+      quantity: 1,
+      price: totalPrice
+    };
+
+    // Verificar se o produto já existe na lista
+    const existingProductIndex = products.findIndex(p => 
+      p.name.toLowerCase().includes(kgProductName.toLowerCase().trim())
+    );
+    
+    if (existingProductIndex !== -1) {
+      // Se existe, incrementar quantidade
+      const updatedProducts = [...products];
+      updatedProducts[existingProductIndex].quantity += 1;
+      onUpdateProducts(updatedProducts);
+      toast({
+        title: "Produto atualizado",
+        description: `Quantidade de ${kgProductName} incrementada`,
+      });
+    } else {
+      // Se não existe, adicionar novo produto
+      onUpdateProducts([...products, newProduct]);
+      toast({
+        title: "Produto adicionado",
+        description: `${newProduct.name} foi adicionado à lista`,
+      });
+    }
+
+    // Reset states
+    setKgProductName('');
+    setKgProductPricePerKg('0');
+    setKgProductWeight('0');
+    setKgStep('name');
+    setShowKgDialog(false);
+  };
+
+  const handleKgDialogClose = () => {
+    setShowKgDialog(false);
+    setKgProductName('');
+    setKgProductPricePerKg('0');
+    setKgProductWeight('0');
+    setKgStep('name');
+  };
+
+  const formatWeightDisplay = (grams: string) => {
+    const numGrams = parseInt(grams || '0');
+    const kg = Math.floor(numGrams / 1000);
+    const remainingGrams = numGrams % 1000;
+    
+    if (kg > 0) {
+      return `${kg},${remainingGrams.toString().padStart(3, '0')}`;
+    } else {
+      return `0,${remainingGrams.toString().padStart(3, '0')}`;
+    }
+  };
+
+  const handleWeightInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const digitsOnly = value.replace(/\D/g, '');
+    
+    if (digitsOnly.length <= 7) { // Max 9999.999 kg
+      setKgProductWeight(digitsOnly);
+    }
+  };
+
   const handleCompleteList = () => {
     if (products.length === 0) {
       toast({
@@ -336,6 +456,168 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
                     Adicionar
                   </Button>
                 </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showKgDialog} onOpenChange={setShowKgDialog}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full h-12 text-base shadow-button"
+                size="lg"
+              >
+                <Scale className="h-5 w-5 mr-2" />
+                Adicionar Produto no Kg
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {kgStep === 'name' && 'Nome do Produto'}
+                  {kgStep === 'price' && 'Preço por Kg'}
+                  {kgStep === 'weight' && 'Peso do Produto'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                {kgStep === 'name' && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Nome do Produto
+                      </label>
+                      <Input
+                        placeholder="Digite o nome do produto"
+                        value={kgProductName}
+                        onChange={(e) => setKgProductName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleKgProductNext()}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={handleKgDialogClose}
+                        className="flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={handleKgProductNext}
+                        disabled={!kgProductName.trim()}
+                        className="flex-1"
+                      >
+                        Próximo
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {kgStep === 'price' && (
+                  <>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="font-medium text-foreground">{kgProductName}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Preço por Kg
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">R$</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={formatPriceDisplay(kgProductPricePerKg)}
+                          onChange={(e) => handlePriceInputChange(e, setKgProductPricePerKg)}
+                          onKeyDown={(e) => handlePriceKeyDown(e, handleKgProductNext, setKgProductPricePerKg, kgProductPricePerKg)}
+                          className="flex-1 h-10 px-3 py-2 text-right font-mono rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          placeholder="0,00"
+                          autoFocus
+                        />
+                        <span className="text-sm text-muted-foreground">/kg</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setKgStep('name')}
+                        className="flex-1"
+                      >
+                        Voltar
+                      </Button>
+                      <Button
+                        onClick={handleKgProductNext}
+                        className="flex-1"
+                      >
+                        Próximo
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {kgStep === 'weight' && (
+                  <>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="font-medium text-foreground">{kgProductName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        R$ {formatPriceDisplay(kgProductPricePerKg)} por kg
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Peso
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={formatWeightDisplay(kgProductWeight)}
+                          onChange={handleWeightInputChange}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Backspace') {
+                              e.preventDefault();
+                              setKgProductWeight(kgProductWeight.slice(0, -1));
+                            } else if (e.key === 'Delete' || e.key === 'Clear') {
+                              e.preventDefault();
+                              setKgProductWeight('0');
+                            } else if (e.key === 'Enter') {
+                              handleKgProductAdd();
+                            } else if (!/\d/.test(e.key) && !['Tab', 'Escape'].includes(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          className="flex-1 h-10 px-3 py-2 text-right font-mono rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          placeholder="0,000"
+                          autoFocus
+                        />
+                        <span className="text-sm text-muted-foreground">kg</span>
+                      </div>
+                      {parseInt(kgProductWeight || '0') > 0 && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Total: R$ {((parseInt(kgProductPricePerKg || '0') / 100) * (parseInt(kgProductWeight || '0') / 1000)).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setKgStep('price')}
+                        className="flex-1"
+                      >
+                        Voltar
+                      </Button>
+                      <Button
+                        onClick={handleKgProductAdd}
+                        disabled={parseInt(kgProductWeight || '0') <= 0}
+                        className="flex-1"
+                      >
+                        Adicionar
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </DialogContent>
           </Dialog>
