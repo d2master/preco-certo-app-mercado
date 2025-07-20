@@ -1,30 +1,42 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ShoppingList } from '@/types/product';
-import { ArrowLeft, Calendar, ShoppingBag, RotateCcw, Package, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, ShoppingBag, Package } from 'lucide-react';
 
 interface HistoryViewProps {
   shoppingLists: ShoppingList[];
   onBack: () => void;
-  onRepeatList: (list: ShoppingList) => void;
-  onDeleteList: (listId: string) => void;
+  onSelectList: (list: ShoppingList) => void;
 }
 
-export function HistoryView({ shoppingLists, onBack, onRepeatList, onDeleteList }: HistoryViewProps) {
+export function HistoryView({ shoppingLists, onBack, onSelectList }: HistoryViewProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric'
     });
   };
 
   const getTotalItems = (list: ShoppingList) => {
     return list.products.reduce((sum, product) => sum + product.quantity, 0);
+  };
+
+  const getListIcon = (list: ShoppingList) => {
+    // Gerar cor baseada no ID da lista para consistência
+    const colors = [
+      'bg-blue-500',
+      'bg-green-500', 
+      'bg-purple-500',
+      'bg-orange-500',
+      'bg-pink-500',
+      'bg-indigo-500'
+    ];
+    const colorIndex = list.id.length % colors.length;
+    return colors[colorIndex];
   };
 
   return (
@@ -43,7 +55,7 @@ export function HistoryView({ shoppingLists, onBack, onRepeatList, onDeleteList 
           </div>
         </div>
 
-        {/* Lista de Histórico */}
+        {/* Grid de Listas */}
         <div className="space-y-4">
           {shoppingLists.length === 0 ? (
             <Card className="p-8 text-center shadow-card border-border">
@@ -56,103 +68,48 @@ export function HistoryView({ shoppingLists, onBack, onRepeatList, onDeleteList 
               </p>
             </Card>
           ) : (
-            shoppingLists.map((list) => (
-              <Card key={list.id} className="p-4 shadow-card border-border bg-gradient-card">
-                <div className="space-y-3">
-                  {/* Header da Lista */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground truncate">
+            <div className="grid grid-cols-2 gap-4">
+              {shoppingLists.map((list) => (
+                <Card 
+                  key={list.id} 
+                  className="p-4 shadow-card border-border bg-gradient-card cursor-pointer hover:shadow-lg transition-all duration-300"
+                  onClick={() => onSelectList(list)}
+                >
+                  <div className="space-y-3">
+                    {/* Ícone da Lista */}
+                    <div className={`w-12 h-12 rounded-lg ${getListIcon(list)} flex items-center justify-center mx-auto shadow-button`}>
+                      <ShoppingBag className="h-6 w-6 text-white" />
+                    </div>
+
+                    {/* Nome da Lista */}
+                    <div className="text-center">
+                      <h3 className="font-medium text-foreground text-sm truncate">
                         {list.name}
                       </h3>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center justify-center gap-1 mt-1">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
                         <p className="text-xs text-muted-foreground">
                           {formatDate(list.completedAt || list.createdAt)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Package className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">
-                          {getTotalItems(list)} {getTotalItems(list) === 1 ? 'item' : 'itens'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm font-medium text-primary">
-                          Total: R$ {list.total?.toFixed(2) || '0,00'}
-                        </p>
-                      </div>
                     </div>
-                    
-                    <div className="flex gap-2 ml-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onRepeatList(list)}
-                      >
-                        <RotateCcw className="h-4 w-4 mr-1" />
-                        Repetir
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onDeleteList(list.id)}
-                        className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
 
-                  {/* Produtos da Lista */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-foreground">Produtos:</h4>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {list.products.map((product, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm">
-                          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center overflow-hidden">
-                            {product.image ? (
-                              <img 
-                                src={product.image} 
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  target.nextElementSibling?.classList.remove('hidden');
-                                }}
-                              />
-                            ) : null}
-                            <Package className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                       <div className="flex-1 min-w-0">
-                            <p className="text-foreground truncate">{product.name}</p>
-                            {product.brand && (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {product.brand}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <span className="text-muted-foreground font-medium text-sm">
-                              {product.quantity}x
-                            </span>
-                            <p className="text-xs text-muted-foreground">
-                              R$ {product.price?.toFixed(2) || '0,00'}
-                            </p>
-                            {product.quantity > 1 && (
-                              <p className="text-xs text-primary font-medium">
-                                R$ {((product.price || 0) * product.quantity).toFixed(2)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                    {/* Informações Resumidas */}
+                    <div className="space-y-2 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Package className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {getTotalItems(list)} {getTotalItems(list) === 1 ? 'item' : 'itens'}
+                        </span>
+                      </div>
+                      <div className="text-sm font-medium text-primary">
+                        R$ {list.total?.toFixed(2) || '0,00'}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            ))
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       </div>

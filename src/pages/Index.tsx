@@ -3,22 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ShoppingListView } from '@/components/ShoppingListView';
 import { HistoryView } from '@/components/HistoryView';
+import { ListDetailView } from '@/components/ListDetailView';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Product, ShoppingList } from '@/types/product';
 import { ShoppingCart, History, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-type View = 'home' | 'shopping' | 'history';
+
+type View = 'home' | 'shopping' | 'history' | 'list-detail';
+
 const Index = () => {
   const [currentView, setCurrentView] = useState<View>('home');
   const [currentProducts, setCurrentProducts] = useState<Product[]>([]);
+  const [selectedList, setSelectedList] = useState<ShoppingList | null>(null);
   const [shoppingLists, setShoppingLists] = useLocalStorage<ShoppingList[]>('shopping-lists', []);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   const handleStartShopping = () => {
     setCurrentProducts([]);
     setCurrentView('shopping');
   };
+
   const handleCompleteList = (listName?: string) => {
     if (currentProducts.length === 0) return;
     const total = currentProducts.reduce((sum, product) => sum + product.price * product.quantity, 0);
@@ -34,6 +38,7 @@ const Index = () => {
     setCurrentProducts([]);
     setCurrentView('home');
   };
+
   const handleRepeatList = (list: ShoppingList) => {
     // Criar novos IDs para os produtos para evitar conflitos
     const productsWithNewIds = list.products.map(product => ({
@@ -47,25 +52,69 @@ const Index = () => {
       description: `${list.products.length} produtos adicionados à nova lista`
     });
   };
+
   const handleViewHistory = () => {
     setCurrentView('history');
   };
+
+  const handleSelectList = (list: ShoppingList) => {
+    setSelectedList(list);
+    setCurrentView('list-detail');
+  };
+
   const handleBackToHome = () => {
     setCurrentView('home');
   };
+
+  const handleBackToHistory = () => {
+    setSelectedList(null);
+    setCurrentView('history');
+  };
+
   const handleDeleteList = (listId: string) => {
     setShoppingLists(prev => prev.filter(list => list.id !== listId));
     toast({
       title: "Lista excluída",
       description: "A lista foi removida do histórico"
     });
+    // Se estamos visualizando a lista que foi excluída, voltar para o histórico
+    if (selectedList?.id === listId) {
+      handleBackToHistory();
+    }
   };
+
   if (currentView === 'shopping') {
-    return <ShoppingListView products={currentProducts} onUpdateProducts={setCurrentProducts} onComplete={handleCompleteList} onBack={handleBackToHome} />;
+    return (
+      <ShoppingListView 
+        products={currentProducts} 
+        onUpdateProducts={setCurrentProducts} 
+        onComplete={handleCompleteList} 
+        onBack={handleBackToHome} 
+      />
+    );
   }
+
   if (currentView === 'history') {
-    return <HistoryView shoppingLists={shoppingLists} onBack={handleBackToHome} onRepeatList={handleRepeatList} onDeleteList={handleDeleteList} />;
+    return (
+      <HistoryView 
+        shoppingLists={shoppingLists} 
+        onBack={handleBackToHome} 
+        onSelectList={handleSelectList}
+      />
+    );
   }
+
+  if (currentView === 'list-detail' && selectedList) {
+    return (
+      <ListDetailView
+        shoppingList={selectedList}
+        onBack={handleBackToHistory}
+        onRepeatList={handleRepeatList}
+        onDeleteList={handleDeleteList}
+      />
+    );
+  }
+
   return <div className="min-h-screen bg-background">
       <div className="max-w-md mx-auto p-4 pt-8">
         {/* Header */}
@@ -146,4 +195,5 @@ const Index = () => {
       </div>
     </div>;
 };
+
 export default Index;
