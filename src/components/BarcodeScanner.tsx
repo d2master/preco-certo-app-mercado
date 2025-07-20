@@ -3,6 +3,7 @@ import { useZxing } from 'react-zxing';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { X, Camera, Loader2, SwitchCamera } from 'lucide-react';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 interface BarcodeScannerProps {
   onScanSuccess: (barcode: string) => void;
@@ -18,8 +19,8 @@ interface CameraDevice {
 export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeScannerProps) {
   const [error, setError] = useState<string>('');
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
-  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+  const [selectedCameraId, setSelectedCameraId] = useLocalStorage<string>('barcode-scanner-camera-id', '');
+  const [currentCameraIndex, setCurrentCameraIndex] = useLocalStorage<number>('barcode-scanner-camera-index', 0);
 
   // Get available cameras
   useEffect(() => {
@@ -34,8 +35,26 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
           }));
         
         setCameras(videoDevices);
+        
+        // Restore saved camera or use first available
         if (videoDevices.length > 0) {
-          setSelectedCameraId(videoDevices[0].deviceId);
+          const savedCameraId = selectedCameraId;
+          const savedCameraIndex = Math.max(0, Math.min(currentCameraIndex, videoDevices.length - 1));
+          
+          // Check if saved camera still exists
+          const savedCameraExists = savedCameraId && videoDevices.some(camera => camera.deviceId === savedCameraId);
+          
+          if (savedCameraExists) {
+            // Use saved camera
+            setSelectedCameraId(savedCameraId);
+            const actualIndex = videoDevices.findIndex(camera => camera.deviceId === savedCameraId);
+            setCurrentCameraIndex(actualIndex);
+          } else {
+            // Use first camera or saved index if valid
+            const targetIndex = savedCameraIndex < videoDevices.length ? savedCameraIndex : 0;
+            setSelectedCameraId(videoDevices[targetIndex].deviceId);
+            setCurrentCameraIndex(targetIndex);
+          }
         }
       } catch (err) {
         console.error('Error getting cameras:', err);
@@ -49,8 +68,11 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
   const switchCamera = () => {
     if (cameras.length > 1) {
       const nextIndex = (currentCameraIndex + 1) % cameras.length;
+      const nextCameraId = cameras[nextIndex].deviceId;
+      
+      // Save to localStorage and update state
       setCurrentCameraIndex(nextIndex);
-      setSelectedCameraId(cameras[nextIndex].deviceId);
+      setSelectedCameraId(nextCameraId);
       setError(''); // Clear any previous errors
     }
   };

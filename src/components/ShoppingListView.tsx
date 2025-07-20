@@ -107,10 +107,10 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     }
   };
 
-  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, onEnter: () => void, setter: (value: string) => void) => {
+  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, onEnter: () => void, setter: (value: string) => void, currentValue: string) => {
     if (e.key === 'Backspace') {
       e.preventDefault();
-      setter(prev => prev.slice(0, -1));
+      setter(currentValue.slice(0, -1));
     } else if (e.key === 'Delete' || e.key === 'Clear') {
       e.preventDefault();
       setter('0');
@@ -309,7 +309,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
                       pattern="[0-9]*"
                       value={formatPriceDisplay(manualProductPrice)}
                       onChange={(e) => handlePriceInputChange(e, setManualProductPrice)}
-                      onKeyDown={(e) => handlePriceKeyDown(e, handleManualAdd, setManualProductPrice)}
+                      onKeyDown={(e) => handlePriceKeyDown(e, handleManualAdd, setManualProductPrice, manualProductPrice)}
                       className="flex-1 h-10 px-3 py-2 text-right font-mono rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       placeholder="0,00"
                     />
@@ -398,7 +398,7 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
                       pattern="[0-9]*"
                       value={formatPriceDisplay(scannedProductPrice)}
                       onChange={(e) => handlePriceInputChange(e, setScannedProductPrice)}
-                      onKeyDown={(e) => handlePriceKeyDown(e, handleAddScannedProduct, setScannedProductPrice)}
+                      onKeyDown={(e) => handlePriceKeyDown(e, handleAddScannedProduct, setScannedProductPrice, scannedProductPrice)}
                       className="flex-1 h-10 px-3 py-2 text-right font-mono rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       placeholder="0,00"
                       autoFocus
