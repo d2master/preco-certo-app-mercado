@@ -38,6 +38,10 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
   const [kgProductWeight, setKgProductWeight] = useState('0');
   const [kgStep, setKgStep] = useState<'name' | 'price' | 'weight'>('name');
   
+  // New states for product not found dialog
+  const [showProductNotFoundDialog, setShowProductNotFoundDialog] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState('');
+  
   const { toast } = useToast();
 
   const handleScanSuccess = async (barcode: string) => {
@@ -58,18 +62,14 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
           description: `${newProduct.name} - Defina o preço`,
         });
       } else {
-        toast({
-          title: "Produto não encontrado",
-          description: "Não foi possível encontrar informações sobre este produto",
-          variant: "destructive",
-        });
+        // Store barcode and show product not found dialog
+        setScannedBarcode(barcode);
+        setShowProductNotFoundDialog(true);
       }
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao buscar informações do produto",
-        variant: "destructive",
-      });
+      // Store barcode and show product not found dialog
+      setScannedBarcode(barcode);
+      setShowProductNotFoundDialog(true);
     } finally {
       setIsLoading(false);
       setShowScanner(false);
@@ -328,6 +328,16 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
     if (digitsOnly.length <= 7) { // Max 9999.999 kg
       setKgProductWeight(digitsOnly);
     }
+  };
+
+  const handleProductNotFoundYes = () => {
+    setShowProductNotFoundDialog(false);
+    setShowManualDialog(true);
+  };
+
+  const handleProductNotFoundNo = () => {
+    setShowProductNotFoundDialog(false);
+    setScannedBarcode('');
   };
 
   const handleCompleteList = () => {
@@ -746,6 +756,37 @@ export function ShoppingListView({ products, onUpdateProducts, onComplete, onBac
             Finalizar Lista
           </Button>
         )}
+
+        {/* Product Not Found Dialog */}
+        <Dialog open={showProductNotFoundDialog} onOpenChange={setShowProductNotFoundDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Produto não encontrado</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-foreground">
+                O produto com código <span className="font-mono font-medium">{scannedBarcode}</span> não foi encontrado. 
+                Deseja adicionar manualmente?
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleProductNotFoundNo}
+                  className="flex-1"
+                >
+                  Não
+                </Button>
+                <Button
+                  onClick={handleProductNotFoundYes}
+                  className="flex-1"
+                >
+                  Sim
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Scanner Modal */}
         {showScanner && (
