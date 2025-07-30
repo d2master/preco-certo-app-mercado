@@ -205,12 +205,12 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
               Posicione o código de barras no centro da câmera
             </div>
 
-            <div className="flex gap-2">
+            <div className="space-y-2">
               {cameras.length > 1 && (
                 <Button 
                   variant="secondary" 
                   onClick={switchCamera}
-                  className="flex-1 flex items-center gap-2"
+                  className="w-full flex items-center gap-2"
                 >
                   <SwitchCamera className="h-4 w-4" />
                   Trocar Câmera ({currentCameraIndex + 1}/{cameras.length})
@@ -220,7 +220,7 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
               <Button 
                 variant="secondary" 
                 onClick={toggleFlash}
-                className={cameras.length > 1 ? "flex-1" : "w-full"}
+                className="w-full"
               >
                 {flashEnabled ? (
                   <>
