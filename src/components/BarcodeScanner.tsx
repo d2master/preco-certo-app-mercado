@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useZxing } from 'react-zxing';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { X, Camera, Loader2, SwitchCamera } from 'lucide-react';
+import { X, Camera, Loader2, SwitchCamera, Flashlight, FlashlightOff } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 interface BarcodeScannerProps {
@@ -16,11 +16,23 @@ interface CameraDevice {
   label: string;
 }
 
+// Extend MediaTrackCapabilities to include torch
+interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
+  torch?: boolean;
+}
+
+// Extend MediaTrackConstraints to include torch
+interface TorchConstraint {
+  torch?: boolean;
+}
+
 export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeScannerProps) {
   const [error, setError] = useState<string>('');
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useLocalStorage<string>('barcode-scanner-camera-id', '');
   const [currentCameraIndex, setCurrentCameraIndex] = useLocalStorage<number>('barcode-scanner-camera-index', 0);
+  const [flashEnabled, setFlashEnabled] = useLocalStorage<boolean>('barcode-scanner-flash-enabled', false);
+  const [videoTrack, setVideoTrack] = useState<MediaStreamTrack | null>(null);
 
   // Get available cameras
   useEffect(() => {
@@ -98,6 +110,26 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
     };
   };
 
+  // Toggle flash
+  const toggleFlash = async () => {
+    if (videoTrack) {
+      try {
+        const capabilities = videoTrack.getCapabilities() as any;
+        if (capabilities.torch) {
+          await videoTrack.applyConstraints({
+            advanced: [{ torch: !flashEnabled } as any]
+          });
+          setFlashEnabled(!flashEnabled);
+        } else {
+          setError('Flash não disponível neste dispositivo');
+        }
+      } catch (err) {
+        console.error('Error toggling flash:', err);
+        setError('Erro ao controlar o flash');
+      }
+    }
+  };
+
   const { ref } = useZxing({
     constraints: {
       video: getVideoConstraints()
@@ -110,6 +142,29 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
       console.error('Decode error:', error);
     },
   });
+
+  // Update video track when video element is ready
+  useEffect(() => {
+    if (ref.current && ref.current.srcObject) {
+      const stream = ref.current.srcObject as MediaStream;
+      const track = stream.getVideoTracks()[0];
+      setVideoTrack(track);
+      
+      // Apply flash state if available
+      if (track && flashEnabled) {
+        try {
+          const capabilities = track.getCapabilities() as any;
+          if (capabilities.torch) {
+            track.applyConstraints({
+              advanced: [{ torch: true } as any]
+            }).catch(err => console.error('Error applying flash constraint:', err));
+          }
+        } catch (err) {
+          console.error('Error applying flash constraint:', err);
+        }
+      }
+    }
+  }, [ref.current?.srcObject, flashEnabled]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
@@ -150,16 +205,36 @@ export function BarcodeScanner({ onScanSuccess, onClose, isLoading }: BarcodeSca
               Posicione o código de barras no centro da câmera
             </div>
 
-            {cameras.length > 1 && (
+            <div className="flex gap-2">
+              {cameras.length > 1 && (
+                <Button 
+                  variant="secondary" 
+                  onClick={switchCamera}
+                  className="flex-1 flex items-center gap-2"
+                >
+                  <SwitchCamera className="h-4 w-4" />
+                  Trocar Câmera ({currentCameraIndex + 1}/{cameras.length})
+                </Button>
+              )}
+              
               <Button 
                 variant="secondary" 
-                onClick={switchCamera}
-                className="w-full flex items-center gap-2"
+                onClick={toggleFlash}
+                className={cameras.length > 1 ? "flex-1" : "w-full"}
               >
-                <SwitchCamera className="h-4 w-4" />
-                Trocar Câmera ({currentCameraIndex + 1}/{cameras.length})
+                {flashEnabled ? (
+                  <>
+                    <FlashlightOff className="h-4 w-4 mr-2" />
+                    Desligar Flash
+                  </>
+                ) : (
+                  <>
+                    <Flashlight className="h-4 w-4 mr-2" />
+                    Ligar Flash
+                  </>
+                )}
               </Button>
-            )}
+            </div>
 
             <Button 
               variant="outline" 
