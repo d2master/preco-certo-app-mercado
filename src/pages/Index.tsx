@@ -8,21 +8,19 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Product, ShoppingList } from '@/types/product';
 import { ShoppingCart, History, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
 type View = 'home' | 'shopping' | 'history' | 'list-detail';
-
 const Index = () => {
   const [currentView, setCurrentView] = useState<View>('home');
   const [currentProducts, setCurrentProducts] = useState<Product[]>([]);
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(null);
   const [shoppingLists, setShoppingLists] = useLocalStorage<ShoppingList[]>('shopping-lists', []);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const handleStartShopping = () => {
     setCurrentProducts([]);
     setCurrentView('shopping');
   };
-
   const handleCompleteList = (listName?: string) => {
     if (currentProducts.length === 0) return;
     const total = currentProducts.reduce((sum, product) => sum + product.price * product.quantity, 0);
@@ -38,7 +36,6 @@ const Index = () => {
     setCurrentProducts([]);
     setCurrentView('home');
   };
-
   const handleRepeatList = (list: ShoppingList) => {
     // Criar novos IDs para os produtos para evitar conflitos
     const productsWithNewIds = list.products.map(product => ({
@@ -52,25 +49,20 @@ const Index = () => {
       description: `${list.products.length} produtos adicionados à nova lista`
     });
   };
-
   const handleViewHistory = () => {
     setCurrentView('history');
   };
-
   const handleSelectList = (list: ShoppingList) => {
     setSelectedList(list);
     setCurrentView('list-detail');
   };
-
   const handleBackToHome = () => {
     setCurrentView('home');
   };
-
   const handleBackToHistory = () => {
     setSelectedList(null);
     setCurrentView('history');
   };
-
   const handleDeleteList = (listId: string) => {
     setShoppingLists(prev => prev.filter(list => list.id !== listId));
     toast({
@@ -82,39 +74,15 @@ const Index = () => {
       handleBackToHistory();
     }
   };
-
   if (currentView === 'shopping') {
-    return (
-      <ShoppingListView 
-        products={currentProducts} 
-        onUpdateProducts={setCurrentProducts} 
-        onComplete={handleCompleteList} 
-        onBack={handleBackToHome} 
-      />
-    );
+    return <ShoppingListView products={currentProducts} onUpdateProducts={setCurrentProducts} onComplete={handleCompleteList} onBack={handleBackToHome} />;
   }
-
   if (currentView === 'history') {
-    return (
-      <HistoryView 
-        shoppingLists={shoppingLists} 
-        onBack={handleBackToHome} 
-        onSelectList={handleSelectList}
-      />
-    );
+    return <HistoryView shoppingLists={shoppingLists} onBack={handleBackToHome} onSelectList={handleSelectList} />;
   }
-
   if (currentView === 'list-detail' && selectedList) {
-    return (
-      <ListDetailView
-        shoppingList={selectedList}
-        onBack={handleBackToHistory}
-        onRepeatList={handleRepeatList}
-        onDeleteList={handleDeleteList}
-      />
-    );
+    return <ListDetailView shoppingList={selectedList} onBack={handleBackToHistory} onRepeatList={handleRepeatList} onDeleteList={handleDeleteList} />;
   }
-
   return <div className="min-h-screen bg-background">
       <div className="max-w-md mx-auto p-4 pt-8">
         {/* Header */}
@@ -167,33 +135,20 @@ const Index = () => {
 
         {/* Recursos */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">Recursos</h3>
+          
           
           <div className="grid grid-cols-2 gap-4">
-            <Card className="p-4 text-center shadow-card border-border">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Package className="h-4 w-4 text-blue-600" />
-              </div>
-              <p className="text-sm font-medium text-foreground">Scanner</p>
-              <p className="text-xs text-muted-foreground">Código de barras</p>
-            </Card>
+            
 
-            <Card className="p-4 text-center shadow-card border-border">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <ShoppingCart className="h-4 w-4 text-blue-600" />
-              </div>
-              <p className="text-sm font-medium text-foreground">Organizar</p>
-              <p className="text-xs text-muted-foreground">Lista inteligente</p>
-            </Card>
+            
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-center mt-12 mb-4">
-          <p className="text-xs text-muted-foreground">Versão 1.0 • By Jamerson Malheiros</p>
+          
         </div>
       </div>
     </div>;
 };
-
 export default Index;
